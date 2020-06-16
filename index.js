@@ -150,7 +150,12 @@ async function parseSource({input, defaultPlaylist = 'imported'}) {
   });
   const tracks = rows.map((row) => row[0].trim());
   const artists = rows.map((row) => row[1].trim());
-  const playlists = rows.map((row) => row[2].trim().split('|').filter((playlist) => !!playlist).concat(defaultPlaylist));
+  const playlists = rows.map((row) => row[2]
+    .trim()
+    .split('|')
+    .concat(defaultPlaylist)
+    .filter((playlist, index, playlists) => !!playlist && playlists.indexOf(playlist) === index)
+  );
   const uris = rows.map((row) => row[3].trim());
   return {tracks, artists, playlists, uris};
 }
