@@ -12,13 +12,14 @@ import mm from 'music-metadata';
 const {createArrayCsvWriter: createCsvWriter} = csvWriter;
 
 /// Command line parsers
-const options = yargs
+yargs
   .command('generate-csv', 'Generate a track CSV file from a directory', (yargs) => {
     return yargs
       .option('i', {alias: 'input', describe: 'Input directory', type: 'string', demandOption: true})
       .option('o', {alias: 'output', describe: 'Target CSV file', type: 'string', demandOption: true})
       .option('f', {alias: 'filter', describe: 'Regex string to remove from file name', type: 'string', demandOption: false})
   }, generateCsv)
+
   .command('import-tracks', 'Import tracks from a CSV file to Spotify', (yargs) => {
     return yargs
       .option('i', {alias: 'input', describe: 'Input CSV file', type: 'string', demandOption: true})
@@ -29,6 +30,13 @@ const options = yargs
       .option('f', {alias: 'refreshToken', describe: 'Refresh token (if already have it)', type: 'string', demandOption: false})
       .option('p', {alias: 'defaultPlaylist', describe: 'Default playlist', type: 'string', demandOption: false})
   }, importTracks)
+
+  .command('delete-local-tracks', 'Delete local tracks', (yargs) => {
+    return yargs
+      .option('i', {alias: 'input', describe: 'Input directory', type: 'string', demandOption: true})
+      .option('c', {alias: 'csvFile', describe: 'CSV file containing names of files to delete', type: 'string', demandOption: true})
+  }, deleteTracks)
+
   .argv;
 
 /// Exception handling
@@ -144,10 +152,7 @@ async function findTrack({api, track, artist, playlists}) {
 }
 
 async function parseSource({input, defaultPlaylist = 'imported'}) {
-  const fileData = await fs.readFile(input);
-  const rows = await new Promise((resolve, reject) => {
-    csvParse(fileData, {}, (err, rows) => resolve(rows));
-  });
+  const rows = await readCsv(input);
   const tracks = rows.map((row) => row[0].trim());
   const artists = rows.map((row) => row[1].trim());
   const playlists = rows.map((row) => row[2]
@@ -194,6 +199,23 @@ async function auth({clientId, clientSecret, redirectUri, refreshToken}) {
   return api;
 }
 
+///=== Task 3: delete local tracks in CSV file
+async function deleteTracks({input, csvFile}) {
+  const rows = await readCsv(csvFile);
+  const filenames = rows.map((row) => row[0]);
+  const files = await fs.readdir(input);
+
+  let count = 0;
+  for (const file of files) {
+    if (filenames.find((filename) => file.includes(filename))) {
+      const fullpath = path.join(input, file);
+      await fs.unlink(fullpath);
+      count++;
+    }
+  }
+  console.log(`${count} files were deleted`)
+}
+
 // Utils
 function log(obj) {
   console.log(JSON.stringify(obj, null, 2));
@@ -217,4 +239,14 @@ function chunkArray(arr, size) {
     results.push(arr.splice(0, size));
   }
   return results;
+}
+
+async function readCsv(input) {
+  const fileData = await fs.readFile(input);
+  return new Promise((resolve, reject) => {
+    csvParse(fileData, {}, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
 }

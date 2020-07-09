@@ -38,3 +38,13 @@ Import failures are written in a CSV file with the `.failed.csv` suffix. Clean u
 Tracks which were found are written to a CSV file with the `.found.csv` suffix. Use it to get the Spotify URI if you need it for some reason.
 
 If the script fails before writing the `.failed.csv`, try re-running. Spotify API fails for several reasons including rate limit or a permission hasn't taken effect (probably due to poor data consistency).
+
+### Delete local tracks appearing in a CSV file
+
+This script parses a directory and delete local files whose names appear in a CSV file. This is usually done after you import to Spotify and no longer need the local file. The CSV file is likely the file with `.found.csv` suffix, which is the output of the import script.
+
+Run this:
+
+```
+node ./index.js delete-tracks -i <directory> -c <csv file>
+```
